@@ -1435,105 +1435,127 @@ body {
           <button class="modal-submit" id="checkBtn"
             style="background:linear-gradient(135deg,#0d7a8a,#14dae0);"
             onclick="loadConversation()">🔍 LOAD CONVERSATION</button>
-        onclick="toggleCheckPanel()">?? CHECK MY REPLY</button>
-
-      <!-- -- Reply check panel ? hidden until visitor clicks "Check My Reply" -->
-      <div class="reply-check-panel" id="replyCheckPanel">
-        <div class="panel-label">ENTER YOUR MESSAGE ID + PIN TO SEE NADEEM'S REPLY</div>
-
-        <!-- MSG-ID input -->
-        <div class="modal-field" style="margin-bottom:8px">
-          <label class="modal-label">YOUR MESSAGE ID</label>
-          <input class="modal-input" id="checkIdField" type="text" placeholder="e.g. MSG-AB12CD"/>
         </div>
 
-        <!-- PIN input for verification -->
-        <div class="modal-field" style="margin-bottom:8px">
-          <label class="modal-label">YOUR PIN</label>
-          <input class="modal-input" id="checkPinField" type="number" placeholder="4-digit PIN"
-            oninput="if(this.value.length>4)this.value=this.value.slice(0,4)"/>
-        </div>
+        <!-- Step B: Conversation thread view -->
+        <div id="stepConversation" style="display:none;">
 
-        <!-- Check button ? queries Google Sheets for reply -->
-        <button class="modal-submit" style="background:linear-gradient(135deg,#0d7a8a,#14dae0);"
-          onclick="checkReply()">CHECK REPLY</button>
+          <!-- Header showing who this is -->
+          <div style="font-family:monospace; font-size:11px; color:#8b949e; letter-spacing:2px; margin-bottom:12px; text-align:center;">
+            CONVERSATION · <span id="convNick" style="color:var(--yellow);"></span> · <span id="convId" style="color:#58a6ff;"></span>
+          </div>
 
-        <!-- Error shown if ID/PIN is wrong -->
-        <div id="checkError" style="color:#ff6b6b; font-family:monospace; font-size:12px; margin-top:8px; display:none;">
-          ? Message ID or PIN is incorrect. Please try again.
-        </div>
+          <!-- Chat bubbles thread — dynamically filled by JS -->
+          <div class="conv-thread" id="convThread"></div>
 
-        <!-- Reply bubble ? shown when Nadeem has replied -->
-        <div class="reply-bubble" id="replyBubble">
-          <!-- Reply text will be injected here by JS -->
-        </div>
+          <!-- Reply again area — visitor can send another message -->
+          <div class="conv-reply-area">
+            <div class="conv-reply-label">SEND ANOTHER MESSAGE</div>
+            <textarea class="modal-textarea" id="replyMsgField"
+              placeholder="Continue the conversation..." style="min-height:70px;"></textarea>
+            <div class="modal-error" id="replyError">⚠ Please write a message.</div>
+            <button class="modal-submit" id="replyBtn"
+              style="background:linear-gradient(135deg,var(--pink),var(--violet));"
+              onclick="sendReply()">⚡ SEND REPLY</button>
+          </div>
 
-        <!-- Shown when no reply yet -->
-        <div id="noReplyMsg" style="font-family:monospace; font-size:12px; color:#8b949e; text-align:center; margin-top:8px; display:none;">
-          No reply yet. Please check back later.
-        </div>
+          <!-- Back button -->
+          <button class="modal-submit"
+            style="margin-top:8px; background:#161b22; border:1px solid #30363d; font-size:12px;"
+            onclick="backToLogin()">← USE DIFFERENT ID</button>
 
-      </div><!-- end replyCheckPanel -->
+        </div><!-- end stepConversation -->
 
-    </div><!-- end stepSend -->
+      </div><!-- end paneCheck -->
 
-    <!-- -- STEP 2: RESULT SHOWN AFTER SENDING -------- -->
-    <!-- This div replaces the form after a message is successfully sent -->
-    <div id="stepResult" style="display:none;">
-
-      <div class="modal-title" style="color:#25d366;">? MESSAGE SENT!</div>
-
-      <div class="modal-result" style="display:block;">
-
-        <!-- Big unique MSG-ID the visitor must save -->
-        <div style="font-family:monospace; font-size:12px; color:#8b949e; margin-bottom:6px; letter-spacing:2px;">
-          YOUR UNIQUE MESSAGE ID
-        </div>
-        <div class="result-id" id="resultId">MSG-XXXXXX</div>
-
-        <!-- Instructions -->
-        <div class="result-text">
-          Save this ID + your PIN. Come back to check if Nadeem has replied.
-        </div>
-
-        <!-- The reply-check link -->
-        <div class="result-link" id="resultLink"></div>
-
-        <!-- Copy ID button -->
-        <br/>
-        <button class="copy-btn" onclick="copyId()">?? COPY MESSAGE ID</button>
-
-      </div>
-
-      <!-- Close button at bottom of result -->
-            <!-- Reply Section -->
-      <div class="reply-section">
-        <div class="modal-title" style="color:#ff6b35;">? SEND YOUR REPLY</div>
-        <div class="reply-meta">
-          Replying to: <strong id="replyNickname"></strong> (MSG-ID: <strong id="replyMsgId"></strong>)
-        </div>
-        <textarea id="replyField" placeholder="Type your reply here..." rows="4"></textarea>
-        <div id="replyError" style="color:#ff4757; font-size:12px; display:none; margin-top:4px;">Please enter a reply message.</div>
-        <div id="replySuccess" style="color:#25d366; font-size:12px; display:none; margin-top:4px;">✓ Reply sent successfully!</div>
-        <button class="modal-submit" onclick="sendReply()">SEND REPLY</button>
-      </div>
-
-      <button class="modal-submit" style="margin-top:16px;" onclick="closeModal()">CLOSE</button>
-
-    </div><!-- end stepResult -->
-
+    </div><!-- end modal-body -->
   </div><!-- end modal-box -->
 </div><!-- end modal-overlay -->
 
 
 <script>
-// ============================================================
-// OutLawZ - Message System (FIXED VERSION)
-// ============================================================
-
+// ═══════════════════════════════════════════════════════════
+// OutLawZ — Conversation Message System
+// ─────────────────────────────────────────────────────────
+// REPLACE the URL below with your Google Apps Script Web App URL
+// After updating Apps Script code → create a NEW deployment → copy new URL
+// ═══════════════════════════════════════════════════════════
 const SHEET_URL = "https://script.google.com/macros/s/AKfycbzislFYDGRnJuRglL8HaJrYU30ZK0YLVS-MZ4osCUZDuPNMEgeFbPtOR4WGTWFi51tqsA/exec";
 
-// ── Generates unique MSG-ID like MSG-AB12CD
+// ── In-memory store: saves MSG-ID + PIN after login so visitor can reply again
+// without re-entering them
+let activeSession = { msgId: null, pin: null, nick: null };
+
+// ════════════════════════════════════════════════
+// MODAL OPEN / CLOSE / TAB SWITCHING
+// ════════════════════════════════════════════════
+
+// Opens modal and sets the starting tab
+// tab = 'send' or 'check'
+function openModal(tab) {
+  document.getElementById('msgModal').classList.add('active');
+  switchTab(tab || 'send');
+}
+
+// Closes modal and resets everything
+function closeModal() {
+  document.getElementById('msgModal').classList.remove('active');
+  resetSendForm();
+  backToLogin();
+  clearErrors();
+}
+
+// Switch between Send and Check tabs
+function switchTab(tab) {
+  const isSend = tab === 'send';
+  document.getElementById('paneSend').style.display  = isSend ? 'block' : 'none';
+  document.getElementById('paneCheck').style.display = isSend ? 'none'  : 'block';
+  document.getElementById('tabSend').classList.toggle('active',  isSend);
+  document.getElementById('tabCheck').classList.toggle('active', !isSend);
+}
+
+// After sending, click "View My Conversation" — auto-loads it
+function goToConversation() {
+  const id  = document.getElementById('resultId').textContent;
+  const pin = document.getElementById('pinField').value.trim();
+  switchTab('check');
+  document.getElementById('checkIdField').value  = id;
+  document.getElementById('checkPinField').value = pin;
+  loadConversation();
+}
+
+// Reset send form to initial state
+function resetSendForm() {
+  document.getElementById('stepCompose').style.display = 'block';
+  document.getElementById('stepResult').style.display  = 'none';
+  ['nickField','pinField','msgField'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  clearErrors();
+}
+
+// Back to login step in Check tab
+function backToLogin() {
+  document.getElementById('stepLogin').style.display        = 'block';
+  document.getElementById('stepConversation').style.display = 'none';
+  document.getElementById('convThread').innerHTML = '';
+  activeSession = { msgId: null, pin: null, nick: null };
+  clearErrors();
+}
+
+// Hide all error messages
+function clearErrors() {
+  ['sendError','checkError','replyError'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+}
+
+// ════════════════════════════════════════════════
+// UNIQUE MSG-ID GENERATOR
+// Produces IDs like MSG-AB12CD
+// ════════════════════════════════════════════════
 function generateMsgId() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let id = 'MSG-';
@@ -1543,173 +1565,297 @@ function generateMsgId() {
   return id;
 }
 
-// ── SEND MESSAGE to Google Sheets
-// Uses no-cors (required for Apps Script POST) — always proceeds to show result
+// ════════════════════════════════════════════════
+// SEND — First message in a new conversation
+// ════════════════════════════════════════════════
 async function sendMessage() {
   const nick = document.getElementById('nickField').value.trim();
   const pin  = document.getElementById('pinField').value.trim();
   const msg  = document.getElementById('msgField').value.trim();
 
-  // Hide previous error
   document.getElementById('sendError').style.display = 'none';
 
-  // Validate all fields + PIN must be exactly 4 digits
+  // Validate: all required, PIN exactly 4 digits
   if (!nick || !msg || pin.length !== 4 || isNaN(pin)) {
     document.getElementById('sendError').style.display = 'block';
     return;
   }
 
-  // Generate unique ID
-  const msgId = generateMsgId();
+  // Lock button to prevent double-send
+  const btn = document.getElementById('sendBtn');
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+
+  const msgId     = generateMsgId();
   const timestamp = new Date().toLocaleString('en-PK', { timeZone: 'Asia/Karachi' });
 
-  // Build payload — action must match doPost() in Apps Script
+  // Payload: action=sendMessage tells Apps Script what to do
   const payload = {
-    action: 'sendMessage',
-    msgId: msgId,
-    nickname: nick,
-    pin: pin,
-    message: msg,
+    action:    'sendMessage',
+    msgId:     msgId,
+    nickname:  nick,
+    pin:       pin,           // Apps Script hashes this before storing
+    message:   msg,
     timestamp: timestamp,
-    reply: ''
+    sender:    'user'         // marks this as visitor message (not owner reply)
   };
 
-  // Send to Google Sheets (no-cors is required — we cannot read the response)
   try {
+    // POST with no-cors — required for Apps Script, we cannot read response
     await fetch(SHEET_URL, {
-      method: 'POST',
-      mode: 'no-cors',
+      method:  'POST',
+      mode:    'no-cors',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body:    JSON.stringify(payload)
     });
   } catch (e) {
-    // no-cors always throws a "failed" but still delivers — safe to ignore
-    console.log('POST sent (no-cors):', e.message);
+    // no-cors always throws — safe to ignore, message was delivered
+    console.log('Sent (no-cors):', msgId);
   }
 
-  // Show result — MSG-ID + reply check link
-  const pageUrl = window.location.href.split('?')[0];
-  const replyLink = `${pageUrl}?checkId=${msgId}`;
+  // Save session so visitor can continue without re-entering ID+PIN
+  activeSession = { msgId, pin, nick };
 
-  document.getElementById('stepSend').style.display = 'none';
-  document.getElementById('stepResult').style.display = 'block';
+  // Show success result
+  document.getElementById('stepCompose').style.display = 'none';
+  document.getElementById('stepResult').style.display  = 'block';
   document.getElementById('resultId').textContent = msgId;
+
+  const pageUrl  = window.location.href.split('?')[0];
+  const replyUrl = `${pageUrl}?checkId=${msgId}`;
   document.getElementById('resultLink').innerHTML =
-    `<a href="${replyLink}" style="color:#58a6ff;" target="_blank">🔗 ${replyLink}</a>`;
+    `<a href="${replyUrl}" style="color:#58a6ff;" target="_blank">🔗 Bookmark this link to check replies</a>`;
+
+  btn.disabled    = false;
+  btn.textContent = '⚡ SEND MESSAGE';
 }
 
-// ── CHECK REPLY from Google Sheets
-// FIX: action must be 'getReply' — matches doGet() in Apps Script
-// FIX: CORS mode used correctly for GET requests
-async function checkReply() {
+// ════════════════════════════════════════════════
+// LOAD CONVERSATION — Check tab
+// Verifies MSG-ID + PIN, loads full thread
+// ════════════════════════════════════════════════
+async function loadConversation() {
   const msgId = document.getElementById('checkIdField').value.trim().toUpperCase();
   const pin   = document.getElementById('checkPinField').value.trim();
 
-  // Reset display states
   document.getElementById('checkError').style.display = 'none';
-  document.getElementById('replyBubble').style.display = 'none';
-  document.getElementById('noReplyMsg').style.display = 'none';
 
-  // Validate
   if (!msgId || pin.length !== 4 || isNaN(pin)) {
     document.getElementById('checkError').textContent = '⚠ Enter your Message ID and 4-digit PIN.';
     document.getElementById('checkError').style.display = 'block';
     return;
   }
 
-  // Show loading state
-  const btn = document.querySelector('[onclick="checkReply()"]');
-  if (btn) { btn.textContent = 'Checking...'; btn.disabled = true; }
+  const btn = document.getElementById('checkBtn');
+  btn.disabled    = true;
+  btn.textContent = 'Loading...';
 
   try {
-    // FIX: action='getReply' — this matches the doGet() function in Apps Script
-    // FIX: No mode:'cors' needed — fetch() defaults to cors for cross-origin GET
-    const url = `${SHEET_URL}?action=getReply&msgId=${encodeURIComponent(msgId)}&pin=${encodeURIComponent(pin)}`;
-    const res = await fetch(url);
+    // GET request: action=getConversation returns full thread as JSON array
+    const url = `${SHEET_URL}?action=getConversation&msgId=${encodeURIComponent(msgId)}&pin=${encodeURIComponent(pin)}`;
+    const res  = await fetch(url);
 
-    // Check if response is ok before parsing
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
     const data = await res.json();
 
     if (data.status === 'ok') {
-      // MSG-ID + PIN matched
-      if (data.reply && data.reply.trim() !== '') {
-        // Nadeem has replied — show it
-        document.getElementById('replyBubble').innerHTML =
-          `<strong style="color:var(--yellow);font-family:monospace;">OutLawZ replied:</strong><br/><br/>${data.reply}`;
-        document.getElementById('replyBubble').style.display = 'block';
-      } else {
-        // Matched but no reply yet
-        document.getElementById('noReplyMsg').style.display = 'block';
-      }
+      // Save session for reply-again feature
+      activeSession = { msgId, pin, nick: data.nickname || msgId };
+
+      // Show conversation panel
+      document.getElementById('stepLogin').style.display        = 'none';
+      document.getElementById('stepConversation').style.display = 'block';
+      document.getElementById('convNick').textContent = data.nickname || 'Visitor';
+      document.getElementById('convId').textContent   = msgId;
+
+      // Render chat bubbles
+      renderThread(data.messages);
+
     } else {
-      // Wrong ID or PIN
       document.getElementById('checkError').textContent = '⚠ Message ID or PIN is incorrect.';
       document.getElementById('checkError').style.display = 'block';
     }
 
   } catch (err) {
-    // Network error or Apps Script returned non-JSON
-    console.error('checkReply error:', err);
-    document.getElementById('checkError').textContent =
-      '⚠ Could not connect. Check your internet and try again.';
+    console.error('loadConversation:', err);
+    document.getElementById('checkError').textContent = '⚠ Could not connect. Please try again.';
     document.getElementById('checkError').style.display = 'block';
   } finally {
-    // Restore button
-    if (btn) { btn.textContent = 'CHECK REPLY'; btn.disabled = false; }
+    btn.disabled    = false;
+    btn.textContent = '🔍 LOAD CONVERSATION';
   }
 }
 
-// ── Toggle the Check Reply panel open/closed
-function toggleCheckPanel() {
-  const panel = document.getElementById('replyCheckPanel');
-  panel.classList.toggle('active');
+// ════════════════════════════════════════════════
+// RENDER THREAD — builds chat bubble UI
+// messages = array of { sender, message, timestamp }
+// sender = 'user' | 'owner'
+// ════════════════════════════════════════════════
+function renderThread(messages) {
+  const thread = document.getElementById('convThread');
+  thread.innerHTML = ''; // clear previous
+
+  if (!messages || messages.length === 0) {
+    // No messages yet (shouldn't happen but safety check)
+    thread.innerHTML = '<div class="no-reply-box">No messages yet.</div>';
+    return;
+  }
+
+  messages.forEach(msg => {
+    const isOwner = msg.sender === 'owner';
+    const wrapper = document.createElement('div');
+
+    // Label above bubble
+    const label = document.createElement('div');
+    label.className = `bubble-label ${isOwner ? 'bubble-label-owner' : 'bubble-label-user'}`;
+    label.textContent = isOwner ? 'OutLawZ ✦' : (activeSession.nick || 'You');
+
+    // The bubble itself
+    const bubble = document.createElement('div');
+    bubble.className = `bubble ${isOwner ? 'bubble-owner' : 'bubble-user'}`;
+    bubble.textContent = msg.message;
+
+    // Timestamp
+    const time = document.createElement('div');
+    time.className = `bubble-time ${isOwner ? '' : 'bubble-time-right'}`;
+    time.textContent = msg.timestamp || '';
+
+    wrapper.appendChild(label);
+    wrapper.appendChild(bubble);
+    wrapper.appendChild(time);
+    thread.appendChild(wrapper);
+  });
+
+  // Show "no reply yet" banner if last message is from user
+  const last = messages[messages.length - 1];
+  if (last && last.sender === 'user') {
+    const wait = document.createElement('div');
+    wait.className = 'no-reply-box';
+    wait.innerHTML = '⏳ Waiting for OutLawZ to reply…<br/><span style="font-size:10px;color:#555;">Check back later</span>';
+    thread.appendChild(wait);
+  }
+
+  // Scroll thread to bottom so latest message is visible
+  thread.scrollTop = thread.scrollHeight;
 }
 
-// ── Copy MSG-ID to clipboard
+// ════════════════════════════════════════════════
+// SEND REPLY — visitor sends a follow-up message
+// Uses the active session (no need to re-enter ID+PIN)
+// ════════════════════════════════════════════════
+async function sendReply() {
+  const msg = document.getElementById('replyMsgField').value.trim();
+  document.getElementById('replyError').style.display = 'none';
+
+  if (!msg) {
+    document.getElementById('replyError').style.display = 'block';
+    return;
+  }
+
+  if (!activeSession.msgId) {
+    // Session expired — ask to re-login
+    backToLogin();
+    return;
+  }
+
+  const btn = document.getElementById('replyBtn');
+  btn.disabled    = true;
+  btn.textContent = 'Sending...';
+
+  const timestamp = new Date().toLocaleString('en-PK', { timeZone: 'Asia/Karachi' });
+
+  // Payload: action=addReply appends to existing thread in sheet
+  const payload = {
+    action:    'addReply',
+    msgId:     activeSession.msgId,
+    pin:       activeSession.pin,       // Apps Script re-verifies PIN
+    message:   msg,
+    timestamp: timestamp,
+    sender:    'user'                   // this is visitor's reply, not owner
+  };
+
+  try {
+    await fetch(SHEET_URL, {
+      method:  'POST',
+      mode:    'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(payload)
+    });
+  } catch (e) {
+    console.log('Reply sent (no-cors)');
+  }
+
+  // Clear input and reload conversation to show updated thread
+  document.getElementById('replyMsgField').value = '';
+  btn.textContent = 'Loading...';
+
+  // Small delay then reload (Apps Script needs a moment to write)
+  setTimeout(async () => {
+    await loadConversationSilent();
+    btn.disabled    = false;
+    btn.textContent = '⚡ SEND REPLY';
+  }, 1200);
+}
+
+// Reload conversation without showing the login step
+// Used after visitor sends a reply to refresh the thread
+async function loadConversationSilent() {
+  if (!activeSession.msgId || !activeSession.pin) return;
+  try {
+    const url = `${SHEET_URL}?action=getConversation&msgId=${encodeURIComponent(activeSession.msgId)}&pin=${encodeURIComponent(activeSession.pin)}`;
+    const res  = await fetch(url);
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.status === 'ok') renderThread(data.messages);
+  } catch (e) {
+    console.log('Silent reload error:', e);
+  }
+}
+
+// ════════════════════════════════════════════════
+// COPY MSG-ID button
+// ════════════════════════════════════════════════
 function copyId() {
-  const id = document.getElementById('resultId').textContent;
+  const id  = document.getElementById('resultId').textContent;
+  const btn = document.querySelector('.copy-btn');
   navigator.clipboard.writeText(id).then(() => {
-    const btn = document.querySelector('.copy-btn');
     btn.textContent = '✅ COPIED!';
     setTimeout(() => { btn.textContent = '📋 COPY MESSAGE ID'; }, 2000);
   }).catch(() => {
     // Fallback for older browsers
     const ta = document.createElement('textarea');
-    ta.value = id;
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
+    ta.value = id; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy');
     document.body.removeChild(ta);
+    btn.textContent = '✅ COPIED!';
+    setTimeout(() => { btn.textContent = '📋 COPY MESSAGE ID'; }, 2000);
   });
 }
 
-// ── Open modal with specific tab (send or check)
-function openModal(tab = 'send') {
-  // Reset everything first
-  closeModal();
-  
-  const modal = document.getElementById('msgModal');
-  modal.style.display = 'flex';
-  document.body.style.overflow = 'hidden';
-
-  // Show the requested tab
-  if (tab === 'send') {
-    document.getElementById('tab-send').classList.add('active');
-    document.getElementById('tab-check').classList.remove('active');
-    document.getElementById('step1').style.display = 'block';
-    document.getElementById('step2').style.display = 'none';
-    document.getElementById('stepResult').style.display = 'none';
-  } else if (tab === 'check') {
-    document.getElementById('tab-send').classList.remove('active');
-    document.getElementById('tab-check').classList.add('active');
-    document.getElementById('step1').style.display = 'none';
-    document.getElementById('step2').style.display = 'block';
-    document.getElementById('stepResult').style.display = 'none';
+// ════════════════════════════════════════════════
+// AUTO-OPEN from URL: ?checkId=MSG-XXXXX
+// When visitor clicks their bookmark link
+// ════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(window.location.search);
+  const autoId = params.get('checkId');
+  if (autoId) {
+    openModal('check');
+    document.getElementById('checkIdField').value = autoId.toUpperCase();
+    document.getElementById('checkPinField').focus();
   }
-}
+});
 
+// ESC to close modal
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// Click outside modal box to close
+document.getElementById('msgModal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+</script>
+
+<script>
 function addSparkBorders() {
   const stanzas = document.querySelectorAll('.poetry-section .stanza');
   stanzas.forEach((stanza) => {
@@ -1795,108 +1941,8 @@ function addSparkBorders() {
   });
 }
 
-// ── SEND REPLY to Google Sheets
-async function sendReply() {
-  const replyText = document.getElementById('replyField').value.trim();
-
-  // Hide previous error
-  document.getElementById('replyError').style.display = 'none';
-
-  // Validate reply
-  if (!replyText) {
-    document.getElementById('replyError').style.display = 'block';
-    return;
-  }
-
-  // Get the current message data from the displayed reply
-  const msgId = document.getElementById('replyMsgId').textContent;
-  const originalMsg = document.getElementById('replyOriginal').textContent;
-  const originalNick = document.getElementById('replyNickname').textContent;
-  const originalTimestamp = document.getElementById('replyTimestamp').textContent;
-
-  // Build payload
-  const payload = {
-    action: 'sendReply',
-    msgId: msgId,
-    originalMessage: originalMsg,
-    nickname: originalNick,
-    timestamp: originalTimestamp,
-    reply: replyText,
-    replyTimestamp: new Date().toLocaleString('en-PK', { timeZone: 'Asia/Karachi' })
-  };
-
-  // Send using no-cors (required for Apps Script)
-  try {
-    await fetch(SHEET_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-  } catch (err) {
-    // Silently ignore - no-cors always throws but still works
-  }
-
-  // Show success and refresh the reply display
-  document.getElementById('replyField').value = '';
-  document.getElementById('replySuccess').style.display = 'block';
-  
-  // Refresh the reply display after a short delay
-  setTimeout(() => {
-    document.getElementById('replySuccess').style.display = 'none';
-    checkReply(); // Refresh to show the new reply
-  }, 2000);
-}
-
-// ── Close modal and reset all fields
-function closeModal() {
-  const modal = document.getElementById('msgModal');
-  modal.style.display = 'none';
-  document.body.style.overflow = '';
-
-  // Reset form back to step 1
-  document.getElementById('stepSend').style.display = 'block';
-  document.getElementById('stepResult').style.display = 'none';
-
-  // Clear all input fields
-  ['nickField','pinField','msgField','checkIdField','checkPinField'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.value = '';
-  });
-
-  // Hide all error/result messages
-  ['sendError','checkError','replyBubble','noReplyMsg'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.style.display = 'none';
-  });
-
-  // Close check panel
-  const panel = document.getElementById('replyCheckPanel');
-  if (panel) panel.classList.remove('active');
-}
-
-// ── Auto-open check panel if URL has ?checkId= (from reply link)
 window.addEventListener('DOMContentLoaded', () => {
-  const params = new URLSearchParams(window.location.search);
-  const autoId = params.get('checkId');
-  if (autoId) {
-    openModal();
-    const field = document.getElementById('checkIdField');
-    if (field) field.value = autoId;
-    toggleCheckPanel();
-  }
   addSparkBorders();
-});
-
-// ── ESC key closes modal
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') closeModal();
-});
-
-// ── Click outside modal box to close
-window.addEventListener('click', e => {
-  const modal = document.getElementById('msgModal');
-  if (e.target === modal) closeModal();
 });
 </script>
 
