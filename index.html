@@ -227,6 +227,34 @@ body {
 .poetry-section .stanza {
   position: relative;
   z-index: 1;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+/* Electric spark border animation for stanzas */
+.stanza {
+  position: relative;
+}
+
+.stanza::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+  overflow: visible;
+}
+
+.stanza svg.spark-border {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+  overflow: visible;
 }
 
 .section-label {
@@ -1679,6 +1707,97 @@ function openModal(tab = 'send') {
     document.getElementById('step2').style.display = 'block';
     document.getElementById('stepResult').style.display = 'none';
   }
+  addSparkBorders();
+}
+
+function addSparkBorders() {
+  const stanzas = document.querySelectorAll('.stanza');
+  stanzas.forEach((stanza, index) => {
+    const uid = Math.random().toString(36).slice(2, 7);
+    const sparkColor = '#00e5ff'; // Cyan color matching your design
+    const sparkColor2 = '#7c5cfc'; // Purple accent
+    
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.className = 'spark-border';
+    svg.setAttribute('viewBox', '0 0 100% 100%');
+    svg.setAttribute('aria-hidden', 'true');
+    
+    svg.innerHTML = `
+      <defs>
+        <filter id="fg${uid}" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="2.5" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="fg2${uid}" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="2" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <style>
+          @keyframes spark1_${uid}{to{stroke-dashoffset:-940}}
+          @keyframes spark2_${uid}{to{stroke-dashoffset:-940}}
+          .s1_${uid}{
+            stroke-dasharray:28,912;
+            stroke-dashoffset:0;
+            animation:spark1_${uid} 2.8s linear infinite;
+          }
+          .s2_${uid}{
+            stroke-dasharray:18,922;
+            stroke-dashoffset:-470;
+            animation:spark2_${uid} 4.2s linear infinite;
+          }
+        </style>
+      </defs>
+      <!-- dim static border -->
+      <rect x="1" y="1" width="calc(100% - 2px)" height="calc(100% - 2px)"
+        rx="15" ry="15" fill="none"
+        stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+      <!-- spark line 1 — cyan with glow -->
+      <rect x="1" y="1" width="calc(100% - 2px)" height="calc(100% - 2px)"
+        rx="15" ry="15" fill="none"
+        stroke="${sparkColor}" stroke-width="1.5" stroke-linecap="round"
+        filter="url(#fg${uid})"
+        class="s1_${uid}"/>
+      <!-- spark line 2 — purple, opposite phase -->
+      <rect x="1" y="1" width="calc(100% - 2px)" height="calc(100% - 2px)"
+        rx="15" ry="15" fill="none"
+        stroke="${sparkColor2}" stroke-width="1.5" stroke-linecap="round"
+        filter="url(#fg2${uid})"
+        class="s2_${uid}"/>
+    `;
+    
+    stanza.appendChild(svg);
+    
+    // Fix SVG sizing after injection
+    requestAnimationFrame(() => {
+      const w = stanza.offsetWidth;
+      const h = stanza.offsetHeight;
+      if (!w || !h) return;
+      const r = 15;
+      const perim = Math.round(2 * (w + h) - (8 - 2 * Math.PI) * r);
+      const sparkLen1 = 30, sparkLen2 = 18;
+      const gap1 = perim - sparkLen1, gap2 = perim - sparkLen2;
+      const halfPerim = Math.round(perim / 2);
+      
+      svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+      
+      // Update all rects to use actual dimensions
+      svg.querySelectorAll('rect').forEach(rect => {
+        rect.setAttribute('width', w - 2);
+        rect.setAttribute('height', h - 2);
+      });
+      
+      // Update the keyframe animations with real perimeter
+      const styleEl = svg.querySelector('style');
+      if (styleEl) {
+        styleEl.textContent = `
+          @keyframes spark1_${uid}{to{stroke-dashoffset:${-perim}}}
+          @keyframes spark2_${uid}{to{stroke-dashoffset:${-perim}}}
+          .s1_${uid}{stroke-dasharray:${sparkLen1},${gap1};stroke-dashoffset:0;animation:spark1_${uid} 2.8s linear infinite;}
+          .s2_${uid}{stroke-dasharray:${sparkLen2},${gap2};stroke-dashoffset:${-halfPerim};animation:spark2_${uid} 4.2s linear infinite;}
+        `;
+      }
+    });
+  });
 }
 
 // ── SEND REPLY to Google Sheets
