@@ -1062,6 +1062,34 @@ body {
 /* PIN input smaller, max 4 chars */
 .pin-input  { flex: 1; }
 
+/* Message launcher buttons */
+.msg-launcher {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.msg-launch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, var(--pink), var(--violet));
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: all 0.25s;
+  text-decoration: none;
+}
+.msg-launch-btn:hover { opacity:.85; transform:translateY(-1px); }
+.msg-launch-check { background: linear-gradient(135deg,#0d7a8a,#14dae0); }
+
 </style>
 <script src="modal-functions.js"></script>
 </head>
@@ -1096,8 +1124,8 @@ body {
       <a href="https://github.com/net2t/DD-CMS-Final" target="_blank" class="github-btn" style="--i: 2" title="Organized Profile Scraping CMS">DD-CMS-Final</a>
       <a href="https://github.com/net2t/Gen-Video" target="_blank" class="github-btn" style="--i: 3" title="Automation of Video Generation">Gen-Video</a>
       <a href="https://github.com/net2t/DD-Personal-Bot" target="_blank" class="github-btn" style="--i: 4" title="Personal Bot">DD-Personal-Bot</a>
-    <a class="message-btn" onclick="openModal()">? Send me Message</a>
-    <div class="hero-divider">RAWALPINDI, PK &nbsp; &nbsp; DAMADAM.PK</div>
+      <div class="hero-divider">RAWALPINDI, PK &nbsp; &nbsp; DAMADAM.PK</div>
+      <div class="msg-launcher"><button class="msg-launch-btn msg-launch-send" onclick="openModal('send')">SEND MESSAGE ✉</button><button class="msg-launch-btn msg-launch-check" onclick="openModal('check')">CHECK REPLY 🔍</button></div>
     </div>
   </div>
 
@@ -1230,58 +1258,101 @@ body {
 <div class="modal-overlay" id="msgModal">
   <div class="modal-box">
 
-    <!-- Close button top-right -->
-    <button class="modal-close" onclick="closeModal()">?</button>
+    <!-- Close × button -->
+    <button class="modal-close" onclick="closeModal()">✕</button>
 
-    <!-- -- STEP 1: SEND MESSAGE FORM ------------------ -->
-    <!-- This div is shown first ? the message compose form -->
-    <div id="stepSend">
+    <!-- Sticky header: tab switcher -->
+    <div class="modal-header">
+      <div class="modal-tabs">
+        <!-- Tab 1: Send a new message -->
+        <button class="modal-tab active" id="tabSend" onclick="switchTab('send')">✉ SEND</button>
+        <!-- Tab 2: Check conversation / reply -->
+        <button class="modal-tab" id="tabCheck" onclick="switchTab('check')">🔍 MY CONVERSATION</button>
+      </div>
+    </div>
 
-      <div class="modal-title">? SEND A MESSAGE</div>
+    <!-- Scrollable body -->
+    <div class="modal-body">
 
-      <!-- Nick + PIN area: visitor sets their nickname and 4-digit PIN -->
-      <!-- This PIN is their private key to retrieve your reply later -->
-      <div class="nick-pin-area">
-        <div class="nick-pin-label">?? SET YOUR NICKNAME &amp; 4-DIGIT PIN (to read my reply later)</div>
-        <div class="nick-pin-row">
-          <!-- Nickname field ? any name the visitor wants -->
-          <div class="modal-field nick-input" style="margin-bottom:0">
-            <label class="modal-label">NICKNAME</label>
-            <input class="modal-input" id="nickField" type="text" placeholder="e.g. Raza, Anonymous..." maxlength="30"/>
+      <!-- ══════════════════════════════════
+           TAB 1: SEND A NEW MESSAGE
+      ══════════════════════════════════ -->
+      <div id="paneSend">
+
+        <!-- Step A: Compose form -->
+        <div id="stepCompose">
+          <div class="modal-title">✉ SEND A MESSAGE</div>
+
+          <!-- Nickname + PIN — visitor's identity key -->
+          <div class="nick-pin-area">
+            <div class="nick-pin-label">🔒 SET YOUR NICKNAME &amp; 4-DIGIT PIN — you'll need these to check my reply</div>
+            <div class="nick-pin-row">
+              <div class="modal-field nick-input">
+                <label class="modal-label">NICKNAME</label>
+                <input class="modal-input" id="nickField" type="text" placeholder="e.g. Raza, Ali..." maxlength="30"/>
+              </div>
+              <div class="modal-field pin-input">
+                <label class="modal-label">PIN (4 digits)</label>
+                <input class="modal-input" id="pinField" type="number" placeholder="1234"
+                  oninput="if(this.value.length>4)this.value=this.value.slice(0,4)"/>
+              </div>
+            </div>
           </div>
-          <!-- PIN field ? exactly 4 digits, numbers only -->
-          <div class="modal-field pin-input" style="margin-bottom:0">
-            <label class="modal-label">PIN (4 digits)</label>
-            <input class="modal-input" id="pinField" type="number" placeholder="1234" maxlength="4"
+
+          <div class="modal-field">
+            <label class="modal-label">YOUR MESSAGE</label>
+            <textarea class="modal-textarea" id="msgField" placeholder="Write your message here..."></textarea>
+          </div>
+
+          <div class="modal-error" id="sendError">⚠ Please fill all fields and use a 4-digit PIN.</div>
+
+          <button class="modal-submit" id="sendBtn" onclick="sendMessage()">⚡ SEND MESSAGE</button>
+        </div>
+
+        <!-- Step B: Success result after sending -->
+        <div id="stepResult" style="display:none;">
+          <div class="modal-title" style="color:#25d366;">✅ MESSAGE SENT!</div>
+          <div class="result-box">
+            <div class="result-text" style="margin-bottom:4px;">YOUR UNIQUE MESSAGE ID</div>
+            <div class="result-id" id="resultId">MSG-XXXXXX</div>
+            <div class="result-text">Save this ID + your PIN. Use "MY CONVERSATION" tab to check replies.</div>
+            <div class="result-link" id="resultLink"></div>
+            <button class="copy-btn" onclick="copyId()">📋 COPY MESSAGE ID</button>
+          </div>
+          <!-- After sending, offer to go straight to conversation -->
+          <button class="modal-submit" style="margin-top:12px; background:linear-gradient(135deg,#0d7a8a,#14dae0);"
+            onclick="goToConversation()">🔍 VIEW MY CONVERSATION</button>
+          <button class="modal-submit" style="margin-top:8px; background:#161b22; border:1px solid #30363d;"
+            onclick="resetSendForm()">✉ SEND ANOTHER MESSAGE</button>
+        </div>
+
+      </div><!-- end paneSend -->
+
+      <!-- ══════════════════════════════════
+           TAB 2: MY CONVERSATION (check + reply again)
+      ══════════════════════════════════ -->
+      <div id="paneCheck" style="display:none;">
+
+        <!-- Step A: Enter MSG-ID + PIN to unlock conversation -->
+        <div id="stepLogin">
+          <div class="modal-title" style="color:#14dae0;">🔍 MY CONVERSATION</div>
+
+          <div class="modal-field">
+            <label class="modal-label">YOUR MESSAGE ID</label>
+            <input class="modal-input" id="checkIdField" type="text" placeholder="e.g. MSG-AB12CD"
+              style="text-transform:uppercase;"/>
+          </div>
+          <div class="modal-field">
+            <label class="modal-label">YOUR PIN (4 digits)</label>
+            <input class="modal-input" id="checkPinField" type="number" placeholder="1234"
               oninput="if(this.value.length>4)this.value=this.value.slice(0,4)"/>
           </div>
-        </div>
-      </div>
 
-      <!-- Message text area -->
-      <div class="modal-field">
-        <label class="modal-label">YOUR MESSAGE</label>
-        <textarea class="modal-textarea" id="msgField" placeholder="Write your message here..."></textarea>
-      </div>
+          <div class="modal-error" id="checkError">⚠ Message ID or PIN is incorrect.</div>
 
-      <!-- Error message shown if fields are empty -->
-      <div id="sendError" style="color:#ff6b6b; font-family:monospace; font-size:12px; margin-bottom:10px; display:none;">
-        ? Please fill all fields and use a 4-digit PIN.
-      </div>
-
-      <!-- Submit button ? sends to Google Sheets -->
-      <button class="modal-submit" onclick="sendMessage()">? SEND MESSAGE</button>
-      
-      <!-- Status message div -->
-      <div id="msg-status" style="margin-top:10px; color:#00ffcc;"></div>
-
-      <!-- Divider between send and check-reply -->
-      <div style="text-align:center; margin:18px 0 10px; font-family:monospace; font-size:11px; color:#444; letter-spacing:2px;">
-        -- OR --
-      </div>
-
-      <!-- Check My Reply button ? toggles the reply-check panel below -->
-      <button class="modal-submit" style="background:linear-gradient(135deg,#161b22,#21262d); border:1px solid #30363d;"
+          <button class="modal-submit" id="checkBtn"
+            style="background:linear-gradient(135deg,#0d7a8a,#14dae0);"
+            onclick="loadConversation()">🔍 LOAD CONVERSATION</button>
         onclick="toggleCheckPanel()">?? CHECK MY REPLY</button>
 
       <!-- -- Reply check panel ? hidden until visitor clicks "Check My Reply" -->
@@ -1353,6 +1424,18 @@ body {
       </div>
 
       <!-- Close button at bottom of result -->
+            <!-- Reply Section -->
+      <div class="reply-section">
+        <div class="modal-title" style="color:#ff6b35;">? SEND YOUR REPLY</div>
+        <div class="reply-meta">
+          Replying to: <strong id="replyNickname"></strong> (MSG-ID: <strong id="replyMsgId"></strong>)
+        </div>
+        <textarea id="replyField" placeholder="Type your reply here..." rows="4"></textarea>
+        <div id="replyError" style="color:#ff4757; font-size:12px; display:none; margin-top:4px;">Please enter a reply message.</div>
+        <div id="replySuccess" style="color:#25d366; font-size:12px; display:none; margin-top:4px;">✓ Reply sent successfully!</div>
+        <button class="modal-submit" onclick="sendReply()">SEND REPLY</button>
+      </div>
+
       <button class="modal-submit" style="margin-top:16px;" onclick="closeModal()">CLOSE</button>
 
     </div><!-- end stepResult -->
