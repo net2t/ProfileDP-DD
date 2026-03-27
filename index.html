@@ -207,6 +207,26 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  position: relative;
+  overflow: hidden;
+}
+
+.poetry-section::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: 
+    linear-gradient(rgba(0, 229, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 229, 255, 0.03) 1px, transparent 1px);
+  background-size: 48px 48px;
+  animation: gridmove 80s linear infinite;
+}
+
+.poetry-section .stanza {
+  position: relative;
+  z-index: 1;
 }
 
 .section-label {
@@ -526,6 +546,10 @@ body {
 @keyframes fadeInOut {
   0%, 100% { opacity: 0.3; transform: translateY(0px); }
   50% { opacity: 1; transform: translateY(-3px); }
+}
+
+@keyframes gridmove {
+  to { background-position: 48px 48px; }
 }
 
 /* Social row replacement with GitHub repos */
