@@ -1363,14 +1363,14 @@ body {
 
 <script>
 // ============================================================
-// OutLawZ - Message Form Submit Function
-// Sends form data to Google Apps Script Web App
+// OutLawZ - Message System (FIXED VERSION)
 // ============================================================
 
 const SHEET_URL = "https://script.google.com/macros/s/AKfycbzislFYDGRnJuRglL8HaJrYU30ZK0YLVS-MZ4osCUZDuPNMEgeFbPtOR4WGTWFi51tqsA/exec";
 
+// ── Generates unique MSG-ID like MSG-AB12CD
 function generateMsgId() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // easy to read chars
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let id = 'MSG-';
   for (let i = 0; i < 6; i++) {
     id += chars.charAt(Math.floor(Math.random() * chars.length));
@@ -1379,231 +1379,202 @@ function generateMsgId() {
 }
 
 // ── SEND MESSAGE to Google Sheets
-// Called when visitor clicks "Send Message"
+// Uses no-cors (required for Apps Script POST) — always proceeds to show result
 async function sendMessage() {
-  // Read all field values
   const nick = document.getElementById('nickField').value.trim();
   const pin  = document.getElementById('pinField').value.trim();
   const msg  = document.getElementById('msgField').value.trim();
 
-  // Validate: all fields required, PIN must be exactly 4 digits
+  // Hide previous error
+  document.getElementById('sendError').style.display = 'none';
+
+  // Validate all fields + PIN must be exactly 4 digits
   if (!nick || !msg || pin.length !== 4 || isNaN(pin)) {
     document.getElementById('sendError').style.display = 'block';
     return;
   }
 
-  // Generate unique ID for this message
+  // Generate unique ID
   const msgId = generateMsgId();
-
-  // Timestamp for the sheet log
   const timestamp = new Date().toLocaleString('en-PK', { timeZone: 'Asia/Karachi' });
 
-  // Build the data object to send to Google Sheets
+  // Build payload — action must match doPost() in Apps Script
   const payload = {
-    action: 'sendMessage',  // tells Apps Script what to do
+    action: 'sendMessage',
     msgId: msgId,
     nickname: nick,
-    pin: pin,               // stored hashed in sheet for privacy
+    pin: pin,
     message: msg,
     timestamp: timestamp,
-    reply: ''               // empty at first — Nadeem fills this later
+    reply: ''
   };
 
+  // Send to Google Sheets (no-cors is required — we cannot read the response)
   try {
-    // POST to Google Sheets Web App
     await fetch(SHEET_URL, {
       method: 'POST',
-      mode: 'no-cors',      // required for Google Apps Script
+      mode: 'no-cors',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
   } catch (e) {
-    // no-cors mode always "succeeds" even if there's an issue
-    // so we proceed to show the result regardless
-    console.log('Message sent (no-cors mode):', e);
+    // no-cors always throws a "failed" but still delivers — safe to ignore
+    console.log('POST sent (no-cors):', e.message);
   }
 
-  // Build the check-reply link with the MSG-ID pre-filled
-  const pageUrl = window.location.href.split('?')[0]; // current page URL
+  // Show result — MSG-ID + reply check link
+  const pageUrl = window.location.href.split('?')[0];
   const replyLink = `${pageUrl}?checkId=${msgId}`;
 
-  // Show the result step (MSG-ID + link)
   document.getElementById('stepSend').style.display = 'none';
   document.getElementById('stepResult').style.display = 'block';
   document.getElementById('resultId').textContent = msgId;
-  document.getElementById('resultLink').innerHTML = `<a href="${replyLink}" target="_blank">Check for Reply</a>`;
+  document.getElementById('resultLink').innerHTML =
+    `<a href="${replyLink}" style="color:#58a6ff;" target="_blank">🔗 ${replyLink}</a>`;
 }
 
 // ── CHECK REPLY from Google Sheets
-// Called when visitor clicks "Check Reply"
+// FIX: action must be 'getReply' — matches doGet() in Apps Script
+// FIX: CORS mode used correctly for GET requests
 async function checkReply() {
-  const msgId = document.getElementById('checkIdField').value.trim();
-  const pin = document.getElementById('checkPinField').value.trim();
+  const msgId = document.getElementById('checkIdField').value.trim().toUpperCase();
+  const pin   = document.getElementById('checkPinField').value.trim();
 
-  // Validate inputs
-  if (!msgId || pin.length !== 4 || isNaN(pin)) {
-    document.getElementById('checkError').style.display = 'block';
-    document.getElementById('replyBubble').style.display = 'none';
-    document.getElementById('noReplyMsg').style.display = 'none';
-    return;
-  }
-
-  try {
-    // Query Google Apps Script for the reply
-    const response = await fetch(`${SHEET_URL}?action=checkReply&msgId=${encodeURIComponent(msgId)}&pin=${pin}`, {
-      method: 'GET',
-      mode: 'cors' // We need CORS for this request
-    });
-    
-    if (!response.ok) {
-      throw new Error('Network response was not ok');
-    }
-    
-    const data = await response.json();
-    
-    if (data.success) {
-      if (data.reply && data.reply.trim() !== '') {
-        // Show the reply
-        document.getElementById('replyBubble').innerHTML = `
-          <div class="reply-header">Nadeem's Reply:</div>
-          <div class="reply-text">${data.reply}</div>
-          <div class="reply-time">Replied: ${data.replyTime || 'Unknown'}</div>
-        `;
-        document.getElementById('replyBubble').style.display = 'block';
-        document.getElementById('noReplyMsg').style.display = 'none';
-      } else {
-        // No reply yet
-        document.getElementById('replyBubble').style.display = 'none';
-        document.getElementById('noReplyMsg').style.display = 'block';
-      }
-      document.getElementById('checkError').style.display = 'none';
-    } else {
-      // Invalid MSG-ID or PIN
-      document.getElementById('checkError').style.display = 'block';
-      document.getElementById('replyBubble').style.display = 'none';
-      document.getElementById('noReplyMsg').style.display = 'none';
-    }
-  } catch (error) {
-    console.error('Error checking reply:', error);
-    document.getElementById('checkError').textContent = '❌ Network error. Please try again.';
-    document.getElementById('checkError').style.display = 'block';
-    document.getElementById('replyBubble').style.display = 'none';
-    document.getElementById('noReplyMsg').style.display = 'none';
-  }
-}
-
-// ── TOGGLE CHECK REPLY PANEL
-// Shows/hides the reply check panel
-function toggleCheckPanel() {
-  const panel = document.getElementById('replyCheckPanel');
-  if (panel.style.display === 'block') {
-    panel.style.display = 'none';
-  } else {
-    panel.style.display = 'block';
-  }
-}
-
-// ── COPY MESSAGE ID to clipboard
-function copyId() {
-  const msgId = document.getElementById('resultId').textContent;
-  navigator.clipboard.writeText(msgId).then(() => {
-    // Show feedback
-    const btn = event.target;
-    const originalText = btn.textContent;
-    btn.textContent = '✓ COPIED!';
-    btn.style.background = 'linear-gradient(135deg,#25d366,#20b954)';
-    
-    setTimeout(() => {
-      btn.textContent = originalText;
-      btn.style.background = '';
-    }, 2000);
-  }).catch(err => {
-    console.error('Failed to copy:', err);
-  });
-}
-
-// ── MODAL CONTROLS
-function openModal() {
-  document.getElementById('msgModal').style.display = 'flex';
-  document.body.style.overflow = 'hidden'; // Prevent background scroll
-}
-
-function closeModal() {
-  document.getElementById('msgModal').style.display = 'none';
-  document.body.style.overflow = ''; // Restore scroll
-  
-  // Reset form when closing
-  document.getElementById('stepSend').style.display = 'block';
-  document.getElementById('stepResult').style.display = 'none';
-  document.getElementById('nickField').value = '';
-  document.getElementById('pinField').value = '';
-  document.getElementById('msgField').value = '';
-  document.getElementById('sendError').style.display = 'none';
+  // Reset display states
   document.getElementById('checkError').style.display = 'none';
   document.getElementById('replyBubble').style.display = 'none';
   document.getElementById('noReplyMsg').style.display = 'none';
-  document.getElementById('replyCheckPanel').style.display = 'none';
-}
 
-// ── URL PARAMETER HANDLING
-// Check if page was loaded with a checkId parameter (from reply link)
-function handleUrlParams() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const checkId = urlParams.get('checkId');
-  
-  if (checkId) {
-    // Open modal and go straight to reply check
-    openModal();
-    document.getElementById('replyCheckPanel').style.display = 'block';
-    document.getElementById('checkIdField').value = checkId;
-    document.getElementById('checkPinField').focus();
+  // Validate
+  if (!msgId || pin.length !== 4 || isNaN(pin)) {
+    document.getElementById('checkError').textContent = '⚠ Enter your Message ID and 4-digit PIN.';
+    document.getElementById('checkError').style.display = 'block';
+    return;
+  }
+
+  // Show loading state
+  const btn = document.querySelector('[onclick="checkReply()"]');
+  if (btn) { btn.textContent = 'Checking...'; btn.disabled = true; }
+
+  try {
+    // FIX: action='getReply' — this matches the doGet() function in Apps Script
+    // FIX: No mode:'cors' needed — fetch() defaults to cors for cross-origin GET
+    const url = `${SHEET_URL}?action=getReply&msgId=${encodeURIComponent(msgId)}&pin=${encodeURIComponent(pin)}`;
+    const res = await fetch(url);
+
+    // Check if response is ok before parsing
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const data = await res.json();
+
+    if (data.status === 'ok') {
+      // MSG-ID + PIN matched
+      if (data.reply && data.reply.trim() !== '') {
+        // Nadeem has replied — show it
+        document.getElementById('replyBubble').innerHTML =
+          `<strong style="color:var(--yellow);font-family:monospace;">OutLawZ replied:</strong><br/><br/>${data.reply}`;
+        document.getElementById('replyBubble').style.display = 'block';
+      } else {
+        // Matched but no reply yet
+        document.getElementById('noReplyMsg').style.display = 'block';
+      }
+    } else {
+      // Wrong ID or PIN
+      document.getElementById('checkError').textContent = '⚠ Message ID or PIN is incorrect.';
+      document.getElementById('checkError').style.display = 'block';
+    }
+
+  } catch (err) {
+    // Network error or Apps Script returned non-JSON
+    console.error('checkReply error:', err);
+    document.getElementById('checkError').textContent =
+      '⚠ Could not connect. Check your internet and try again.';
+    document.getElementById('checkError').style.display = 'block';
+  } finally {
+    // Restore button
+    if (btn) { btn.textContent = 'CHECK REPLY'; btn.disabled = false; }
   }
 }
 
-// ── INITIALIZE ON PAGE LOAD
-// Run when the page finishes loading
-document.addEventListener('DOMContentLoaded', function() {
-  handleUrlParams();
-  
-  // Add some CSS for reply bubble styling
-  const style = document.createElement('style');
-  style.textContent = `
-    .reply-bubble {
-      display: none;
-      background: linear-gradient(135deg, #0d7a8a, #14dae0);
-      border-radius: 12px;
-      padding: 16px;
-      margin-top: 12px;
-      border: 2px solid #00ffcc;
-      box-shadow: 0 4px 12px rgba(20, 218, 224, 0.3);
-    }
-    .reply-header {
-      font-weight: bold;
-      color: #ffffff;
-      margin-bottom: 8px;
-      font-size: 14px;
-    }
-    .reply-text {
-      color: #ffffff;
-      line-height: 1.5;
-      white-space: pre-wrap;
-    }
-    .reply-time {
-      color: rgba(255, 255, 255, 0.7);
-      font-size: 11px;
-      margin-top: 8px;
-      text-align: right;
-    }
-  `;
-  document.head.appendChild(style);
+// ── Toggle the Check Reply panel open/closed
+function toggleCheckPanel() {
+  const panel = document.getElementById('replyCheckPanel');
+  panel.classList.toggle('active');
+}
+
+// ── Copy MSG-ID to clipboard
+function copyId() {
+  const id = document.getElementById('resultId').textContent;
+  navigator.clipboard.writeText(id).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = '✅ COPIED!';
+    setTimeout(() => { btn.textContent = '📋 COPY MESSAGE ID'; }, 2000);
+  }).catch(() => {
+    // Fallback for older browsers
+    const ta = document.createElement('textarea');
+    ta.value = id;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  });
+}
+
+// ── Open the message modal
+function openModal() {
+  const modal = document.getElementById('msgModal');
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+// ── Close modal and reset all fields
+function closeModal() {
+  const modal = document.getElementById('msgModal');
+  modal.style.display = 'none';
+  document.body.style.overflow = '';
+
+  // Reset form back to step 1
+  document.getElementById('stepSend').style.display = 'block';
+  document.getElementById('stepResult').style.display = 'none';
+
+  // Clear all input fields
+  ['nickField','pinField','msgField','checkIdField','checkPinField'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+
+  // Hide all error/result messages
+  ['sendError','checkError','replyBubble','noReplyMsg'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+
+  // Close check panel
+  const panel = document.getElementById('replyCheckPanel');
+  if (panel) panel.classList.remove('active');
+}
+
+// ── Auto-open check panel if URL has ?checkId= (from reply link)
+window.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(window.location.search);
+  const autoId = params.get('checkId');
+  if (autoId) {
+    openModal();
+    const field = document.getElementById('checkIdField');
+    if (field) field.value = autoId;
+    toggleCheckPanel();
+  }
 });
 
-// ── KEYBOARD SHORTCUTS
-// ESC to close modal
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') {
-    closeModal();
-  }
+// ── ESC key closes modal
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
+});
+
+// ── Click outside modal box to close
+window.addEventListener('click', e => {
+  const modal = document.getElementById('msgModal');
+  if (e.target === modal) closeModal();
 });
 </script>
 
