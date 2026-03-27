@@ -1,0 +1,7 @@
+# Ignore hero background image from public repository
+hero-image.png
+
+# Ignore other sensitive assets if needed
+*.jpg
+*.jpeg
+*.gif
