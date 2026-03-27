@@ -1,0 +1,50 @@
+/* OutLawZ Profile - External Font CSS */
+/* Replaces base64 fonts with external font files */
+
+@font-face {
+  font-family: 'OutlawzUrdu';
+  src: url('fonts/OutlawzUrdu.ttf') format('truetype');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'OutlawzBrand';
+  src: url('fonts/OutlawzBrand.otf') format('opentype');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'OutlawzHeroUrdu';
+  src: url('fonts/OutlawzHeroUrdu.ttf') format('truetype');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'OutlawzMetaKey';
+  src: url('fonts/OutlawzMetaKey.ttf') format('truetype');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'OutlawzMetaVal';
+  src: url('fonts/OutlawzMetaVal.ttf') format('truetype');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'OutlawzContact';
+  src: url('fonts/OutlawzContact.otf') format('opentype');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'OutlawzPoetryUrdu';
+  src: url('fonts/OutlawzPoetryUrdu.ttf') format('truetype');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'OutlawzBioUrdu';
+  src: url('fonts/OutlawzBioUrdu.ttf') format('truetype');
+  font-display: swap;
+}
