@@ -892,6 +892,34 @@ body {
   word-break: break-all;
 }
 
+/* Reply Section */
+.reply-section {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #2a2e3a;
+}
+.reply-meta {
+  font-size: 12px;
+  color: #8b949e;
+  margin-bottom: 10px;
+}
+#replyField {
+  width: 100%;
+  min-height: 80px;
+  padding: 12px;
+  background: #1a1d29;
+  border: 1px solid #2a2e3a;
+  border-radius: 8px;
+  color: #e6e6e6;
+  font-family: inherit;
+  font-size: 14px;
+  resize: vertical;
+}
+#replyField:focus {
+  outline: none;
+  border-color: var(--pink);
+}
+
 /* Copy button for the ID */
 .copy-btn {
   margin-top: 10px;
@@ -1603,11 +1631,82 @@ function copyId() {
   });
 }
 
-// ── Open the message modal
-function openModal() {
+// ── Open modal with specific tab (send or check)
+function openModal(tab = 'send') {
+  // Reset everything first
+  closeModal();
+  
   const modal = document.getElementById('msgModal');
   modal.style.display = 'flex';
   document.body.style.overflow = 'hidden';
+
+  // Show the requested tab
+  if (tab === 'send') {
+    document.getElementById('tab-send').classList.add('active');
+    document.getElementById('tab-check').classList.remove('active');
+    document.getElementById('step1').style.display = 'block';
+    document.getElementById('step2').style.display = 'none';
+    document.getElementById('stepResult').style.display = 'none';
+  } else if (tab === 'check') {
+    document.getElementById('tab-send').classList.remove('active');
+    document.getElementById('tab-check').classList.add('active');
+    document.getElementById('step1').style.display = 'none';
+    document.getElementById('step2').style.display = 'block';
+    document.getElementById('stepResult').style.display = 'none';
+  }
+}
+
+// ── SEND REPLY to Google Sheets
+async function sendReply() {
+  const replyText = document.getElementById('replyField').value.trim();
+
+  // Hide previous error
+  document.getElementById('replyError').style.display = 'none';
+
+  // Validate reply
+  if (!replyText) {
+    document.getElementById('replyError').style.display = 'block';
+    return;
+  }
+
+  // Get the current message data from the displayed reply
+  const msgId = document.getElementById('replyMsgId').textContent;
+  const originalMsg = document.getElementById('replyOriginal').textContent;
+  const originalNick = document.getElementById('replyNickname').textContent;
+  const originalTimestamp = document.getElementById('replyTimestamp').textContent;
+
+  // Build payload
+  const payload = {
+    action: 'sendReply',
+    msgId: msgId,
+    originalMessage: originalMsg,
+    nickname: originalNick,
+    timestamp: originalTimestamp,
+    reply: replyText,
+    replyTimestamp: new Date().toLocaleString('en-PK', { timeZone: 'Asia/Karachi' })
+  };
+
+  // Send using no-cors (required for Apps Script)
+  try {
+    await fetch(SHEET_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  } catch (err) {
+    // Silently ignore - no-cors always throws but still works
+  }
+
+  // Show success and refresh the reply display
+  document.getElementById('replyField').value = '';
+  document.getElementById('replySuccess').style.display = 'block';
+  
+  // Refresh the reply display after a short delay
+  setTimeout(() => {
+    document.getElementById('replySuccess').style.display = 'none';
+    checkReply(); // Refresh to show the new reply
+  }, 2000);
 }
 
 // ── Close modal and reset all fields
