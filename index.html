@@ -1645,29 +1645,22 @@ async function loadConversation() {
   btn.textContent = 'Loading...';
 
   try {
-    // GET request: action=getReply returns reply as JSON response
-    const url = `${SHEET_URL}?action=getReply&msgId=${encodeURIComponent(msgId)}&pin=${encodeURIComponent(pin)}`;
+    // GET request: action=getConversation returns the full thread as JSON response
+    const url = `${SHEET_URL}?action=getConversation&msgId=${encodeURIComponent(msgId)}&pin=${encodeURIComponent(pin)}`;
     const res  = await fetch(url);
 
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
     if (data.status === 'ok') {
-      activeSession = { msgId, pin, nick: msgId };
+      activeSession = { msgId, pin, nick: data.nickname || msgId };
 
       document.getElementById('stepLogin').style.display        = 'none';
       document.getElementById('stepConversation').style.display = 'block';
-      document.getElementById('convNick').textContent = 'Visitor';
+      document.getElementById('convNick').textContent = data.nickname || 'Visitor';
       document.getElementById('convId').textContent   = msgId;
 
-      const thread = document.getElementById('convThread');
-      const reply = (data.reply || '').trim();
-      if (reply) {
-        thread.innerHTML = '';
-        renderThread([{ sender: 'owner', message: reply, timestamp: '' }]);
-      } else {
-        thread.innerHTML = '<div class="no-reply-box">⏳ Waiting for OutLawZ to reply…<br/><span style="font-size:10px;color:#555;">Check back later</span></div>';
-      }
+      renderThread(data.messages);
 
     } else {
       document.getElementById('checkError').textContent = data.message || '⚠ Message ID or PIN is incorrect.';
@@ -1800,15 +1793,13 @@ async function sendReply() {
 async function loadConversationSilent() {
   if (!activeSession.msgId || !activeSession.pin) return;
   try {
-    const url = `${SHEET_URL}?action=getReply&msgId=${encodeURIComponent(activeSession.msgId)}&pin=${encodeURIComponent(activeSession.pin)}`;
+    const url = `${SHEET_URL}?action=getConversation&msgId=${encodeURIComponent(activeSession.msgId)}&pin=${encodeURIComponent(activeSession.pin)}`;
     const res  = await fetch(url);
     if (!res.ok) return;
     const data = await res.json();
     if (data.status === 'ok') {
-      const reply = (data.reply || '').trim();
-      if (reply) {
-        renderThread([{ sender: 'owner', message: reply, timestamp: '' }]);
-      }
+      if (data.nickname) activeSession.nick = data.nickname;
+      renderThread(data.messages);
     }
   } catch (e) {
     console.log('Silent reload error:', e);
