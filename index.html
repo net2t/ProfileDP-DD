@@ -13,7 +13,8 @@
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 html { scroll-behavior: smooth; }
 body {
-  width: 1080px;
+  width: 100%;
+  max-width: 1080px;
   margin: 0 auto;
   background: #070707;
   color: #ffffff;
@@ -46,7 +47,8 @@ body {
 ------------------------------- */
 .hero {
   position: relative;
-  width: 1080px;
+  width: 100%;
+  max-width: 1080px;
   height: 900px;
   display: flex;
   align-items: center;
@@ -139,7 +141,7 @@ body {
 /* OUTLAWZ brand */
 .brand-name {
   font-family: var(--brand);
-  font-size: 216px;
+  font-size: clamp(72px, 18vw, 216px);
   font-weight: 900;
   letter-spacing: 8px;
   color: var(--yellow);
@@ -153,7 +155,7 @@ body {
 /* Handle */
 .brand-handle {
   font-family: 'OutlawzContact', var(--mono);
-  font-size: 48px;
+  font-size: clamp(22px, 5vw, 48px);
   letter-spacing: 5px;
   color: var(--cyan);
   margin-top: 6px;
@@ -162,7 +164,7 @@ body {
 
 /* Divider line */
 .hero-divider {
-  width: 760px;
+  width: min(760px, 90vw);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -186,7 +188,7 @@ body {
 /* Urdu tagline */
 .hero-urdu {
   font-family: var(--hero_urdu);
-  font-size: 55px;
+  font-size: clamp(20px, 4.6vw, 55px);
   line-height: 1.1;
   color: rgba(255,255,255,0.85);
   direction: rtl;
@@ -201,7 +203,8 @@ body {
    POETRY SECTION
 ------------------------------- */
 .poetry-section {
-  width: 1080px;
+  width: 100%;
+  max-width: 1080px;
   padding: 80px 70px 70px;
   background: var(--dark);
   display: flex;
@@ -318,7 +321,8 @@ body {
    ABOUT SECTION
 ------------------------------- */
 .about-section {
-  width: 1080px;
+  width: 100%;
+  max-width: 1080px;
   padding: 20px 60px 90px;
   background: var(--dark);
   display: flex;
@@ -445,94 +449,6 @@ body {
   box-shadow: 0 6px 20px rgba(255,45,139,0.4);
 }
 
-/* GitHub repo buttons */
-.github-repos {
-  margin-top: 15px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  justify-content: center;
-}
-
-.github-btn {
-  padding: 8px 16px;
-  font-family: 'OutlawzContact', var(--mono);
-  font-size: 14px;
-  background: #24292e;
-  color: #ffffff;
-  border: 1px solid #30363d;
-  border-radius: 6px;
-  text-decoration: none;
-  letter-spacing: 1px;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.github-btn:hover {
-  background: #30363d;
-  border-color: #58a6ff;
-  transform: translateY(-1px);
-}
-
-.github-btn::before {
-  display: none;
-}
-
-
-/* Social row */
-.social-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 18px;
-  flex-wrap: wrap;
-  padding-top: 18px;
-  border-top: 1px solid #ffffff;
-}
-.soc-link {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  font-family: 'OutlawzContact', var(--mono);
-  font-size: 25px;
-  color: #ffffff;
-  letter-spacing: 1px;
-  padding: 11px 18px;
-  border: 2px solid #d5ec07;
-  border-radius: 9px;
-  text-decoration: none;
-}
-.soc-icon { width: 16px; height: 16px; fill: currentColor; flex-shrink: 0; border: 2px solid #f7e70b; border-radius: 4px; padding: 2px; box-sizing: content-box; }
-.soc-fb:hover   { border-color: #1877F2; color: #1877F2; }
-.soc-ig:hover   { border-color: var(--pink); color: var(--pink); }
-.soc-tt:hover   { border-color: #69C9D0; color: #69C9D0; }
-.soc-web:hover  { border-color: var(--yellow); color: var(--yellow); }
-
-/* Message button */
-.message-btn {
-  margin-top: 20px;
-  padding: 12px 24px;
-  font-family: 'OutlawzContact', var(--mono);
-  font-size: 18px;
-  background: linear-gradient(135deg, var(--pink), var(--violet));
-  color: #ffffff;
-  border: 2px solid var(--pink);
-  border-radius: 8px;
-  text-decoration: none;
-  letter-spacing: 2px;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(255,45,139,0.3);
-}
-
-.message-btn:hover {
-  background: linear-gradient(135deg, var(--violet), var(--pink));
-  border-color: var(--violet);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(255,45,139,0.4);
-}
-
 
 /* Updated GitHub repo buttons with animations */
 .github-repos {
@@ -601,7 +517,8 @@ body {
 
 /* The whole portfolio section wrapping box */
 .portfolio-section {
-  width: 1080px;
+  width: 100%;
+  max-width: 1080px;
   background: #0d1117; /* GitHub dark background */
   border-top: 3px solid #30363d;
   border-bottom: 3px solid #30363d;
@@ -1173,6 +1090,31 @@ body {
 .msg-launch-btn:hover { opacity:.85; transform:translateY(-1px); }
 .msg-launch-check { background: linear-gradient(135deg,#0d7a8a,#14dae0); }
 
+@media (max-width: 768px) {
+  body { padding: 0 12px; }
+
+  .hero { height: min(900px, 100svh); }
+  .hero-content { width: 100%; padding: 0 10px; }
+
+  .brand-name { letter-spacing: 4px; }
+  .brand-handle { letter-spacing: 3px; }
+
+  .section-label { font-size: clamp(28px, 7vw, 56px); letter-spacing: 3px; }
+
+  .poetry-section { padding: 52px 16px 44px; }
+  .about-section { padding: 18px 16px 64px; gap: 36px; }
+  .bio-card { padding: 22px 18px; }
+
+  .stanza { padding: 22px 18px; font-size: clamp(24px, 6vw, 46px); }
+
+  .portfolio-header { padding: 14px 16px; flex-wrap: wrap; }
+  .portfolio-header-title { font-size: 20px; letter-spacing: 2px; }
+  .repo-grid { grid-template-columns: 1fr; padding: 18px 16px 0; }
+
+  .modal-box { padding: 22px 16px; }
+  .nick-pin-row { flex-direction: column; }
+}
+
 </style>
 </head>
 <body>
@@ -1348,7 +1290,7 @@ body {
         <!-- Tab 1: Send a new message -->
         <button class="modal-tab active" id="tabSend" onclick="switchTab('send')">✉ SEND</button>
         <!-- Tab 2: Check conversation / reply -->
-        <button class="modal-tab" id="tabCheck" onclick="switchTab('check')">🔍 MY CONVERSATION</button>
+        <button class="modal-tab" id="tabCheck" onclick="switchTab('check')">🔍 MY -CONVERSATION</button>
       </div>
     </div>
 
