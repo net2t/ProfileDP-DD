@@ -1645,8 +1645,8 @@ async function loadConversation() {
   btn.textContent = 'Loading...';
 
   try {
-    // GET request: action=getConversation returns full thread as JSON array
-    const url = `${SHEET_URL}?action=getConversation&msgId=${encodeURIComponent(msgId)}&pin=${encodeURIComponent(pin)}`;
+    // GET request: action=getReply returns reply as JSON response
+    const url = `${SHEET_URL}?action=getReply&msgId=${encodeURIComponent(msgId)}&pin=${encodeURIComponent(pin)}`;
     const res  = await fetch(url);
 
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
