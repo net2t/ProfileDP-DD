@@ -758,9 +758,11 @@ body {
 
 /* Label above each input */
 .modal-label {
-  font-family: var(--mono);
-  font-size: 12px;
-  color: #8b949e;
+  display: block;
+  margin-bottom: 4px;
+  font-size: 14px;
+  color: #ffffff;
+  font-weight: 700;
   letter-spacing: 2px;
   text-transform: uppercase;
 }
@@ -827,6 +829,56 @@ body {
 }
 .modal-close:hover { color: #fff; }
 
+/* Modal header tabs (SEND / MY-CONVERSATION) */
+.modal-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #0d1117;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+}
+
+.modal-tabs {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.modal-tab {
+  appearance: none;
+  -webkit-appearance: none;
+  background: #161b22;
+  color: #ffffff;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 1px;
+  cursor: pointer;
+  line-height: 1;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.modal-tab:hover {
+  border-color: #58a6ff;
+  transform: translateY(-1px);
+}
+
+.modal-tab.active {
+  background: #ffffff;
+  color: #0d1117;
+  border-color: #ffffff;
+}
+
+.modal-tab:focus-visible {
+  outline: 2px solid rgba(255,45,139,0.55);
+  outline-offset: 2px;
+}
+
 /* Result box shown AFTER message is sent ? shows ID + link */
 .modal-result {
   display: none; /* hidden until message is sent */
@@ -850,8 +902,9 @@ body {
 /* Instruction text under ID */
 .result-text {
   font-family: var(--mono);
-  font-size: 12px;
-  color: #8b949e;
+  font-size: 14px;
+  color: #ffffff;
+  font-weight: 700;
   letter-spacing: 1px;
   margin-bottom: 10px;
 }
@@ -1315,7 +1368,7 @@ body {
                 <input class="modal-input" id="nickField" type="text" placeholder="e.g. Raza, Ali..." maxlength="30"/>
               </div>
               <div class="modal-field pin-input">
-                <label class="modal-label">PIN (4 digits)</label>
+                <label class="modal-label">PIN (4 digit)</label>
                 <input class="modal-input" id="pinField" type="number" placeholder="1234"
                   oninput="if(this.value.length>4)this.value=this.value.slice(0,4)"/>
               </div>
@@ -1327,7 +1380,7 @@ body {
             <textarea class="modal-textarea" id="msgField" placeholder="Write your message here..."></textarea>
           </div>
 
-          <div class="modal-error" id="sendError">⚠ Please fill all fields and use a 4-digit PIN.</div>
+          <div class="modal-error" id="sendError">⚠ Fill all fields and use a 4-digit PIN.</div>
 
           <button class="modal-submit" id="sendBtn" onclick="sendMessage()">⚡ SEND MESSAGE</button>
         </div>
