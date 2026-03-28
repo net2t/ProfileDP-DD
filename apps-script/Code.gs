@@ -13,6 +13,7 @@ const TH_COL_TIMESTAMP = 4;
 
 const PROP_OWNER_EMAIL = 'OWNER_EMAIL';
 const PROP_LAST_NOTIFIED_ROW = 'LAST_NOTIFIED_ROW';
+const PROP_PUSHBULLET_TOKEN = 'PUSHBULLET_TOKEN';
 
 function onOpen() {
   const ui = SpreadsheetApp.getUi();
@@ -20,6 +21,7 @@ function onOpen() {
     .addItem('Setup Sheets', 'setup')
     .addSeparator()
     .addItem('Set Notification Email', 'setOwnerEmail')
+    .addItem('Set Pushbullet Token', 'setPushbulletToken')
     .addItem('Enable Message Notifications', 'enableMessageNotifications')
     .addItem('Disable Message Notifications', 'disableMessageNotifications')
     .addToUi();
@@ -47,12 +49,27 @@ function setOwnerEmail() {
   ui.alert('Saved.');
 }
 
+function setPushbulletToken() {
+  const ui = SpreadsheetApp.getUi();
+  const props = PropertiesService.getScriptProperties();
+  const res = ui.prompt('Pushbullet Access Token', 'Enter Pushbullet Access Token:', ui.ButtonSet.OK_CANCEL);
+  if (res.getSelectedButton() !== ui.Button.OK) return;
+  const token = String(res.getResponseText() || '').trim();
+  if (!token) {
+    ui.alert('Invalid token.');
+    return;
+  }
+  props.setProperty(PROP_PUSHBULLET_TOKEN, token);
+  ui.alert('Saved.');
+}
+
 function enableMessageNotifications() {
   setup();
   const props = PropertiesService.getScriptProperties();
   const email = props.getProperty(PROP_OWNER_EMAIL);
-  if (!email) {
-    SpreadsheetApp.getUi().alert('Set Notification Email first.');
+  const token = props.getProperty(PROP_PUSHBULLET_TOKEN);
+  if (!email && !token) {
+    SpreadsheetApp.getUi().alert('Set Notification Email or Pushbullet Token first.');
     return;
   }
   disableMessageNotifications();
@@ -76,7 +93,8 @@ function notifyNewMessages() {
   setup();
   const props = PropertiesService.getScriptProperties();
   const email = props.getProperty(PROP_OWNER_EMAIL);
-  if (!email) return;
+  const token = props.getProperty(PROP_PUSHBULLET_TOKEN);
+  if (!email && !token) return;
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const threadSheet = ss.getSheetByName(SHEET_THREAD);
@@ -107,7 +125,28 @@ function notifyNewMessages() {
   const body = 'MSG-ID: ' + newestUser.msgId + '\n' +
     'Time: ' + (newestUser.ts || '') + '\n\n' +
     newestUser.message;
-  GmailApp.sendEmail(email, subject, body);
+
+  if (email) GmailApp.sendEmail(email, subject, body);
+  if (token) pushbulletPush_(token, subject, body);
+}
+
+function pushbulletPush_(token, title, body) {
+  const url = 'https://api.pushbullet.com/v2/pushes';
+  const payload = {
+    type: 'note',
+    title: String(title || ''),
+    body: String(body || '')
+  };
+
+  UrlFetchApp.fetch(url, {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify(payload),
+    headers: {
+      'Access-Token': token
+    },
+    muteHttpExceptions: true
+  });
 }
 
 function doGet(e) {

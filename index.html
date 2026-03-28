@@ -1201,7 +1201,7 @@ body {
       <a href="https://github.com/net2t/DD-CMS-Final" target="_blank" class="github-btn" style="--i: 2" title="Organized Profile Scraping CMS">DD-CMS-Final</a>
       <a href="https://github.com/net2t/Gen-Video" target="_blank" class="github-btn" style="--i: 3" title="Automation of Video Generation">Gen-Video</a>
       <a href="https://github.com/net2t/DD-Personal-Bot" target="_blank" class="github-btn" style="--i: 4" title="Personal Bot">DD-Personal-Bot</a>
-      <div class="hero-divider">RAWALPINDI, PK &nbsp; &nbsp; DAMADAM.PK</div><div class="msg-launcher"><button class="msg-launch-btn msg-launch-menu" onclick="toggleMsgMenu()">MENU ☰</button><div id="msgMenu" class="msg-menu" style="display:none;"><button class="msg-launch-btn msg-launch-send" onclick="openModal('send');toggleMsgMenu(false);">SEND MESSAGE ✉</button><button class="msg-launch-btn msg-launch-check" onclick="openModal('check');toggleMsgMenu(false);">CHECK REPLY 🔍</button></div></div>
+      <div class="hero-divider">RAWALPINDI, PK &nbsp; &nbsp; DAMADAM.PK</div><div class="msg-launcher"><button class="msg-launch-btn msg-launch-send" onclick="openModal('send')">SEND MESSAGE ✉</button><button class="msg-launch-btn msg-launch-check" onclick="openModal('check')">CHECK MSG 🔍</button></div>
     </div>
   </div>
 
@@ -1479,13 +1479,6 @@ const SHEET_URL = "https://script.google.com/macros/s/AKfycbzY4lQr8a7roBDRqADWxv
 // ── In-memory store: saves MSG-ID + PIN after login so visitor can reply again
 // without re-entering them
 let activeSession = { msgId: null, pin: null, nick: null };
-
-function toggleMsgMenu(force) {
-  const el = document.getElementById('msgMenu');
-  if (!el) return;
-  const open = (typeof force === 'boolean') ? force : (el.style.display === 'none' || !el.style.display);
-  el.style.display = open ? 'block' : 'none';
-}
 
 // ════════════════════════════════════════════════
 // MODAL OPEN / CLOSE / TAB SWITCHING
