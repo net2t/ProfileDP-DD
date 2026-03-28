@@ -5,3 +5,6 @@ hero-image.png
 *.jpg
 *.jpeg
 *.gif
+
+# Ignore Apps Script folder (keep only copy in repo, not actual working scripts)
+apps-script/
