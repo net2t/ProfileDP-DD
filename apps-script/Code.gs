@@ -11,7 +11,6 @@ const TH_COL_SENDER = 2;
 const TH_COL_MESSAGE = 3;
 const TH_COL_TIMESTAMP = 4;
 
-const PROP_OWNER_EMAIL = 'OWNER_EMAIL';
 const PROP_LAST_NOTIFIED_ROW = 'LAST_NOTIFIED_ROW';
 const PROP_PUSHBULLET_TOKEN = 'PUSHBULLET_TOKEN';
 
@@ -20,7 +19,6 @@ function onOpen() {
   ui.createMenu('OutLawZ')
     .addItem('Setup Sheets', 'setup')
     .addSeparator()
-    .addItem('Set Notification Email', 'setOwnerEmail')
     .addItem('Set Pushbullet Token', 'setPushbulletToken')
     .addItem('Enable Message Notifications', 'enableMessageNotifications')
     .addItem('Disable Message Notifications', 'disableMessageNotifications')
@@ -31,22 +29,6 @@ function setup() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   getOrCreateSheet_(ss, SHEET_MESSAGES, ['MSG-ID', 'Nickname', 'PIN Hash', 'Created At']);
   getOrCreateSheet_(ss, SHEET_THREAD, ['MSG-ID', 'Sender', 'Message', 'Timestamp']);
-}
-
-function setOwnerEmail() {
-  const ui = SpreadsheetApp.getUi();
-  const props = PropertiesService.getScriptProperties();
-  const current = props.getProperty(PROP_OWNER_EMAIL) || '';
-  const res = ui.prompt('Notification Email', 'Enter email to receive new message alerts:', ui.ButtonSet.OK_CANCEL);
-  if (res.getSelectedButton() !== ui.Button.OK) return;
-  const email = String(res.getResponseText() || '').trim();
-  if (!email || email.indexOf('@') === -1) {
-    ui.alert('Invalid email.');
-    return;
-  }
-  props.setProperty(PROP_OWNER_EMAIL, email);
-  if (!current) props.deleteProperty(PROP_LAST_NOTIFIED_ROW);
-  ui.alert('Saved.');
 }
 
 function setPushbulletToken() {
@@ -60,16 +42,16 @@ function setPushbulletToken() {
     return;
   }
   props.setProperty(PROP_PUSHBULLET_TOKEN, token);
+  props.deleteProperty(PROP_LAST_NOTIFIED_ROW);
   ui.alert('Saved.');
 }
 
 function enableMessageNotifications() {
   setup();
   const props = PropertiesService.getScriptProperties();
-  const email = props.getProperty(PROP_OWNER_EMAIL);
   const token = props.getProperty(PROP_PUSHBULLET_TOKEN);
-  if (!email && !token) {
-    SpreadsheetApp.getUi().alert('Set Notification Email or Pushbullet Token first.');
+  if (!token) {
+    SpreadsheetApp.getUi().alert('Set Pushbullet Token first.');
     return;
   }
   disableMessageNotifications();
@@ -92,9 +74,8 @@ function disableMessageNotifications() {
 function notifyNewMessages() {
   setup();
   const props = PropertiesService.getScriptProperties();
-  const email = props.getProperty(PROP_OWNER_EMAIL);
   const token = props.getProperty(PROP_PUSHBULLET_TOKEN);
-  if (!email && !token) return;
+  if (!token) return;
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const threadSheet = ss.getSheetByName(SHEET_THREAD);
@@ -125,9 +106,7 @@ function notifyNewMessages() {
   const body = 'MSG-ID: ' + newestUser.msgId + '\n' +
     'Time: ' + (newestUser.ts || '') + '\n\n' +
     newestUser.message;
-
-  if (email) GmailApp.sendEmail(email, subject, body);
-  if (token) pushbulletPush_(token, subject, body);
+  pushbulletPush_(token, subject, body);
 }
 
 function pushbulletPush_(token, title, body) {
