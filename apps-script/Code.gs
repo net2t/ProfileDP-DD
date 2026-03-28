@@ -11,12 +11,113 @@ const TH_COL_SENDER = 2;
 const TH_COL_MESSAGE = 3;
 const TH_COL_TIMESTAMP = 4;
 
+const PROP_OWNER_EMAIL = 'OWNER_EMAIL';
+const PROP_LAST_NOTIFIED_ROW = 'LAST_NOTIFIED_ROW';
+
+function onOpen() {
+  const ui = SpreadsheetApp.getUi();
+  ui.createMenu('OutLawZ')
+    .addItem('Setup Sheets', 'setup')
+    .addSeparator()
+    .addItem('Set Notification Email', 'setOwnerEmail')
+    .addItem('Enable Message Notifications', 'enableMessageNotifications')
+    .addItem('Disable Message Notifications', 'disableMessageNotifications')
+    .addToUi();
+}
+
+function setup() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  getOrCreateSheet_(ss, SHEET_MESSAGES, ['MSG-ID', 'Nickname', 'PIN Hash', 'Created At']);
+  getOrCreateSheet_(ss, SHEET_THREAD, ['MSG-ID', 'Sender', 'Message', 'Timestamp']);
+}
+
+function setOwnerEmail() {
+  const ui = SpreadsheetApp.getUi();
+  const props = PropertiesService.getScriptProperties();
+  const current = props.getProperty(PROP_OWNER_EMAIL) || '';
+  const res = ui.prompt('Notification Email', 'Enter email to receive new message alerts:', ui.ButtonSet.OK_CANCEL);
+  if (res.getSelectedButton() !== ui.Button.OK) return;
+  const email = String(res.getResponseText() || '').trim();
+  if (!email || email.indexOf('@') === -1) {
+    ui.alert('Invalid email.');
+    return;
+  }
+  props.setProperty(PROP_OWNER_EMAIL, email);
+  if (!current) props.deleteProperty(PROP_LAST_NOTIFIED_ROW);
+  ui.alert('Saved.');
+}
+
+function enableMessageNotifications() {
+  setup();
+  const props = PropertiesService.getScriptProperties();
+  const email = props.getProperty(PROP_OWNER_EMAIL);
+  if (!email) {
+    SpreadsheetApp.getUi().alert('Set Notification Email first.');
+    return;
+  }
+  disableMessageNotifications();
+  ScriptApp.newTrigger('notifyNewMessages')
+    .timeBased()
+    .everyMinutes(1)
+    .create();
+  SpreadsheetApp.getUi().alert('Enabled.');
+}
+
+function disableMessageNotifications() {
+  const triggers = ScriptApp.getProjectTriggers();
+  for (let i = 0; i < triggers.length; i++) {
+    if (triggers[i].getHandlerFunction() === 'notifyNewMessages') {
+      ScriptApp.deleteTrigger(triggers[i]);
+    }
+  }
+}
+
+function notifyNewMessages() {
+  setup();
+  const props = PropertiesService.getScriptProperties();
+  const email = props.getProperty(PROP_OWNER_EMAIL);
+  if (!email) return;
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const threadSheet = ss.getSheetByName(SHEET_THREAD);
+  const lastRow = threadSheet.getLastRow();
+  if (lastRow < 2) return;
+
+  const lastNotified = Number(props.getProperty(PROP_LAST_NOTIFIED_ROW) || 1);
+  if (lastRow <= lastNotified) return;
+
+  const start = Math.max(2, lastNotified + 1);
+  const values = threadSheet.getRange(start, 1, lastRow - start + 1, 4).getValues();
+
+  let newestUser = null;
+  for (let i = 0; i < values.length; i++) {
+    const msgId = String(values[i][TH_COL_MSGID - 1]).trim().toUpperCase();
+    const sender = String(values[i][TH_COL_SENDER - 1]).trim().toLowerCase();
+    const message = String(values[i][TH_COL_MESSAGE - 1]).trim();
+    const ts = String(values[i][TH_COL_TIMESTAMP - 1]).trim();
+    if (!msgId || !message) continue;
+    if (sender !== 'user') continue;
+    newestUser = { msgId, message, ts };
+  }
+
+  props.setProperty(PROP_LAST_NOTIFIED_ROW, String(lastRow));
+  if (!newestUser) return;
+
+  const subject = 'New Message: ' + newestUser.msgId;
+  const body = 'MSG-ID: ' + newestUser.msgId + '\n' +
+    'Time: ' + (newestUser.ts || '') + '\n\n' +
+    newestUser.message;
+  GmailApp.sendEmail(email, subject, body);
+}
+
 function doGet(e) {
+  setup();
   return handleGet(e);
 }
 
 function doPost(e) {
   try {
+    setup();
     const body = JSON.parse(e.postData && e.postData.contents ? e.postData.contents : '{}');
     const action = String(body.action || '');
 
