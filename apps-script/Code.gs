@@ -1,15 +1,17 @@
 const SHEET_MESSAGES = 'Messages';
-const SHEET_THREAD = 'Thread';
+const SHEET_RECORD = 'Record';
 
 const MSG_COL_MSGID = 1;
 const MSG_COL_NICK = 2;
 const MSG_COL_PINHASH = 3;
 const MSG_COL_CREATED_AT = 4;
+const MSG_COL_MESSAGE = 5;
+const MSG_COL_REPLIED = 6;
 
-const TH_COL_MSGID = 1;
-const TH_COL_SENDER = 2;
-const TH_COL_MESSAGE = 3;
-const TH_COL_TIMESTAMP = 4;
+const REC_COL_MSGID = 1;
+const REC_COL_SENDER = 2;
+const REC_COL_MESSAGE = 3;
+const REC_COL_TIMESTAMP = 4;
 
 const PROP_LAST_NOTIFIED_ROW = 'LAST_NOTIFIED_ROW';
 const PROP_PUSHBULLET_TOKEN = 'PUSHBULLET_TOKEN';
@@ -22,13 +24,15 @@ function onOpen() {
     .addItem('Set Pushbullet Token', 'setPushbulletToken')
     .addItem('Enable Message Notifications', 'enableMessageNotifications')
     .addItem('Disable Message Notifications', 'disableMessageNotifications')
+    .addSeparator()
+    .addItem('Clear Replied Messages', 'clearRepliedMessages')
     .addToUi();
 }
 
 function setup() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  getOrCreateSheet_(ss, SHEET_MESSAGES, ['MSG-ID', 'Nickname', 'PIN Hash', 'Created At']);
-  getOrCreateSheet_(ss, SHEET_THREAD, ['MSG-ID', 'Sender', 'Message', 'Timestamp']);
+  getOrCreateSheet_(ss, SHEET_MESSAGES, ['MSG-ID', 'Nickname', 'PIN Hash', 'Created At', 'Message', 'Replied?']);
+  getOrCreateSheet_(ss, SHEET_RECORD, ['MSG-ID', 'Sender', 'Message', 'Timestamp']);
 }
 
 function setPushbulletToken() {
@@ -78,22 +82,22 @@ function notifyNewMessages() {
   if (!token) return;
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const threadSheet = ss.getSheetByName(SHEET_THREAD);
-  const lastRow = threadSheet.getLastRow();
+  const recordSheet = ss.getSheetByName(SHEET_RECORD);
+  const lastRow = recordSheet.getLastRow();
   if (lastRow < 2) return;
 
   const lastNotified = Number(props.getProperty(PROP_LAST_NOTIFIED_ROW) || 1);
   if (lastRow <= lastNotified) return;
 
   const start = Math.max(2, lastNotified + 1);
-  const values = threadSheet.getRange(start, 1, lastRow - start + 1, 4).getValues();
+  const values = recordSheet.getRange(start, 1, lastRow - start + 1, 4).getValues();
 
   let newestUser = null;
   for (let i = 0; i < values.length; i++) {
-    const msgId = String(values[i][TH_COL_MSGID - 1]).trim().toUpperCase();
-    const sender = String(values[i][TH_COL_SENDER - 1]).trim().toLowerCase();
-    const message = String(values[i][TH_COL_MESSAGE - 1]).trim();
-    const ts = String(values[i][TH_COL_TIMESTAMP - 1]).trim();
+    const msgId = String(values[i][REC_COL_MSGID - 1]).trim().toUpperCase();
+    const sender = String(values[i][REC_COL_SENDER - 1]).trim().toLowerCase();
+    const message = String(values[i][REC_COL_MESSAGE - 1]).trim();
+    const ts = String(values[i][REC_COL_TIMESTAMP - 1]).trim();
     if (!msgId || !message) continue;
     if (sender !== 'user') continue;
     newestUser = { msgId, message, ts };
@@ -165,8 +169,8 @@ function handleGet(e) {
     }
 
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const msgSheet = getOrCreateSheet_(ss, SHEET_MESSAGES, ['MSG-ID', 'Nickname', 'PIN Hash', 'Created At']);
-    const threadSheet = getOrCreateSheet_(ss, SHEET_THREAD, ['MSG-ID', 'Sender', 'Message', 'Timestamp']);
+    const msgSheet = getOrCreateSheet_(ss, SHEET_MESSAGES, ['MSG-ID', 'Nickname', 'PIN Hash', 'Created At', 'Message', 'Replied?']);
+    const recordSheet = getOrCreateSheet_(ss, SHEET_RECORD, ['MSG-ID', 'Sender', 'Message', 'Timestamp']);
 
     const pinHash = hashPin_(pin);
 
@@ -188,17 +192,17 @@ function handleGet(e) {
 
     if (!found) return makeResponse({ status: 'error', message: 'Message ID not found' });
 
-    const threadData = threadSheet.getDataRange().getValues();
+    const recordData = recordSheet.getDataRange().getValues();
     const userMsgs = [];
     let lastOwner = null;
 
-    for (let i = 1; i < threadData.length; i++) {
-      const rowMsgId = String(threadData[i][TH_COL_MSGID - 1]).trim().toUpperCase();
+    for (let i = 1; i < recordData.length; i++) {
+      const rowMsgId = String(recordData[i][REC_COL_MSGID - 1]).trim().toUpperCase();
       if (rowMsgId !== msgId) continue;
 
-      const sender = String(threadData[i][TH_COL_SENDER - 1]).trim().toLowerCase();
-      const message = String(threadData[i][TH_COL_MESSAGE - 1]).trim();
-      const timestamp = String(threadData[i][TH_COL_TIMESTAMP - 1]).trim();
+      const sender = String(recordData[i][REC_COL_SENDER - 1]).trim().toLowerCase();
+      const message = String(recordData[i][REC_COL_MESSAGE - 1]).trim();
+      const timestamp = String(recordData[i][REC_COL_TIMESTAMP - 1]).trim();
       if (!message) continue;
 
       if (sender === 'owner') {
@@ -233,8 +237,8 @@ function handleSendMessage(body) {
   }
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const msgSheet = getOrCreateSheet_(ss, SHEET_MESSAGES, ['MSG-ID', 'Nickname', 'PIN Hash', 'Created At']);
-  const threadSheet = getOrCreateSheet_(ss, SHEET_THREAD, ['MSG-ID', 'Sender', 'Message', 'Timestamp']);
+  const msgSheet = getOrCreateSheet_(ss, SHEET_MESSAGES, ['MSG-ID', 'Nickname', 'PIN Hash', 'Created At', 'Message', 'Replied?']);
+  const recordSheet = getOrCreateSheet_(ss, SHEET_RECORD, ['MSG-ID', 'Sender', 'Message', 'Timestamp']);
 
   const pinHash = hashPin_(pin);
 
@@ -242,10 +246,12 @@ function handleSendMessage(body) {
     msgId,
     nickname,
     pinHash,
-    timestamp || new Date().toISOString()
+    timestamp || new Date().toISOString(),
+    message,
+    false
   ]);
 
-  threadSheet.appendRow([
+  recordSheet.appendRow([
     msgId,
     'user',
     message,
@@ -266,12 +272,13 @@ function handleAddReply(body) {
   }
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const msgSheet = getOrCreateSheet_(ss, SHEET_MESSAGES, ['MSG-ID', 'Nickname', 'PIN Hash', 'Created At']);
-  const threadSheet = getOrCreateSheet_(ss, SHEET_THREAD, ['MSG-ID', 'Sender', 'Message', 'Timestamp']);
+  const msgSheet = getOrCreateSheet_(ss, SHEET_MESSAGES, ['MSG-ID', 'Nickname', 'PIN Hash', 'Created At', 'Message', 'Replied?']);
+  const recordSheet = getOrCreateSheet_(ss, SHEET_RECORD, ['MSG-ID', 'Sender', 'Message', 'Timestamp']);
 
   const pinHash = hashPin_(pin);
   const msgData = msgSheet.getDataRange().getValues();
   let found = false;
+  let rowIndex = -1;
 
   for (let i = 1; i < msgData.length; i++) {
     const rowMsgId = String(msgData[i][MSG_COL_MSGID - 1]).trim().toUpperCase();
@@ -281,17 +288,20 @@ function handleAddReply(body) {
     if (rowHash !== pinHash) return makeResponse({ status: 'error', message: 'Wrong PIN' });
 
     found = true;
+    rowIndex = i + 1;
     break;
   }
 
   if (!found) return makeResponse({ status: 'error', message: 'Message ID not found' });
 
-  threadSheet.appendRow([
+  recordSheet.appendRow([
     msgId,
     'user',
     message,
     timestamp || new Date().toISOString()
   ]);
+
+  msgSheet.getRange(rowIndex, MSG_COL_REPLIED).setValue(true);
 
   return makeResponse({ status: 'ok' });
 }
@@ -319,7 +329,34 @@ function getOrCreateSheet_(ss, name, headers) {
   if (sheet.getLastRow() === 0) {
     sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
     sheet.setFrozenRows(1);
+    if (name === SHEET_MESSAGES && headers.length > 5) {
+      sheet.getRange(1, MSG_COL_REPLIED).insertCheckboxes();
+    }
   }
 
   return sheet;
+}
+
+function clearRepliedMessages() {
+  const ui = SpreadsheetApp.getUi();
+  const res = ui.alert('Clear Replied Messages', 'Delete all rows where Replied? is checked?', ui.ButtonSet.YES_NO);
+  if (res !== ui.Button.YES) return;
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_MESSAGES);
+  if (!sheet) {
+    ui.alert('Messages sheet not found.');
+    return;
+  }
+
+  const data = sheet.getDataRange().getValues();
+  const rowsToDelete = [];
+  for (let i = data.length - 1; i >= 1; i--) {
+    if (data[i][MSG_COL_REPLIED - 1] === true) {
+      rowsToDelete.push(i + 1);
+    }
+  }
+
+  rowsToDelete.forEach(row => sheet.deleteRow(row));
+  ui.alert('Deleted ' + rowsToDelete.length + ' replied message(s).');
 }
